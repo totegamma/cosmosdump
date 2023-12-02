@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	gogotypes "github.com/cosmos/gogoproto/types"
 )
 
 func main() {
@@ -82,18 +82,24 @@ func main() {
 	// go map order is random, so sort to diff
 	sort.Strings(modules)
 
-	// Open Multistore
-	ms := store.NewCommitMultiStore(db)
-	for _, module := range modules {
-		ms.MountStoreWithDB(storetypes.NewKVStoreKey(module), storetypes.StoreTypeIAVL, db)
+	// Get latest block height
+	bz, err := db.Get([]byte("s/latest"))
+	if err != nil {
+		panic(err)
+	}
+
+	var latestHeight int64
+	err = gogotypes.StdInt64Unmarshal(&latestHeight, bz)
+	if err != nil {
+		panic(err)
 	}
 
 	if targetHeight == -1 {
-		targetHeight = ms.LatestVersion()
+		targetHeight = latestHeight
 	}
 
 	// Print info
-	fmt.Println("latestVersion: ", ms.LatestVersion())
+	fmt.Println("latestHeight: ", latestHeight)
 	fmt.Println("targetHeight: ", targetHeight)
 	fmt.Println("modules:")
 	for _, module := range modules {
@@ -101,7 +107,7 @@ func main() {
 	}
 
 	// s/<height> is CommitInfo
-	bz, err := db.Get([]byte(fmt.Sprintf("s/%d", targetHeight)))
+	bz, err = db.Get([]byte(fmt.Sprintf("s/%d", targetHeight)))
 	if err != nil {
 		panic(err)
 	}
