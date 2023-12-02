@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cosmos/cosmos-sdk/store/iavl"
@@ -49,39 +48,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// Get modules from DB keys
-	_modules := make(map[string]bool)
-	itr, err := db.Iterator(nil, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	for ; itr.Valid(); itr.Next() {
-		key := string(itr.Key())
-		split := strings.Split(key, "/")
-		if len(split) < 2 {
-			continue
-		}
-		if split[0] != "s" {
-			continue
-		}
-		if len(split[1]) < 2 {
-			continue
-		}
-		if split[1][0] != 'k' {
-			continue
-		}
-		module := split[1][2:]
-		_modules[module] = true
-	}
-
-	modules := make([]string, 0)
-	for module := range _modules {
-		modules = append(modules, module)
-	}
-	// go map order is random, so sort to diff
-	sort.Strings(modules)
-
 	// Get latest block height
 	bz, err := db.Get([]byte("s/latest"))
 	if err != nil {
@@ -101,10 +67,6 @@ func main() {
 	// Print info
 	fmt.Println("latestHeight: ", latestHeight)
 	fmt.Println("targetHeight: ", targetHeight)
-	fmt.Println("modules:")
-	for _, module := range modules {
-		fmt.Println("  ", module)
-	}
 
 	// s/<height> is CommitInfo
 	bz, err = db.Get([]byte(fmt.Sprintf("s/%d", targetHeight)))
@@ -123,6 +85,13 @@ func main() {
 	for _, info := range cInfo.StoreInfos {
 		infos[info.Name] = info
 	}
+
+	modules := make([]string, 0, len(infos))
+	for module := range infos {
+		modules = append(modules, module)
+	}
+
+	sort.Strings(modules)
 
 	// Open DB as PrefixDB
 	stores := make(map[string]storetypes.CommitKVStore)
