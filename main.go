@@ -102,9 +102,8 @@ func main() {
 		prefix := "s/k:" + module + "/"
 		prefixDB := dbm.NewPrefixDB(db, []byte(prefix))
 
-		var storekey storetypes.StoreKey = storetypes.NewKVStoreKey("*") // FIXME: I don't know this argument means
 		var id storetypes.CommitID = targetInfo.CommitId
-		targetStore, err := iavl.LoadStore(prefixDB, nil, storekey, id, false, 1000, false) // there are no particular reason to set 1000
+		targetStore, err := iavl.LoadStore(prefixDB, nil, nil, id, false, 0, false)
 		if err != nil {
 			panic(err)
 		}
